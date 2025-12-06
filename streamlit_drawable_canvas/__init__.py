@@ -2,12 +2,10 @@ import base64
 import io
 import os
 from dataclasses import dataclass
-from hashlib import md5
 
 import numpy as np
 import streamlit as st
 import streamlit.components.v1 as components
-import streamlit.elements.image as st_image
 from PIL import Image
 
 _RELEASE = True  # on packaging, pass this to True
@@ -51,6 +49,14 @@ def _resize_img(img: Image, new_height: int = 700, new_width: int = 700) -> Imag
     w_ratio = new_width / img.width
     img = img.resize((int(img.width * w_ratio), int(img.height * h_ratio)))
     return img
+
+
+def _image_to_data_url(img: Image, image_format: str = "PNG") -> str:
+    """Convert a PIL Image to a base64 data URL."""
+    buffered = io.BytesIO()
+    img.save(buffered, format=image_format)
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/{image_format.lower()};base64,{img_str}"
 
 
 def st_canvas(
@@ -121,11 +127,10 @@ def st_canvas(
     background_image_url = None
     if background_image:
         background_image = _resize_img(background_image, height, width)
-        # Reduce network traffic and cache when switch another configure, use streamlit in-mem filemanager to convert image to URL
-        background_image_url = st_image.image_to_url(
-            background_image, width, True, "RGB", "PNG", f"drawable-canvas-bg-{md5(background_image.tobytes()).hexdigest()}-{key}" 
-        )
-        background_image_url = st._config.get_option("server.baseUrlPath") + background_image_url
+        # Convert image to RGB if necessary and create data URL
+        if background_image.mode != "RGB":
+            background_image = background_image.convert("RGB")
+        background_image_url = _image_to_data_url(background_image, "PNG")
         background_color = ""
 
     # Clean initial drawing, override its background color

@@ -127,8 +127,13 @@ const DrawableCanvas = ({ args }: ComponentProps) => {
       bgImage.onload = function() {
         backgroundCanvas.getContext().drawImage(bgImage, 0, 0);
       };
-      const baseUrl = getStreamlitBaseUrl() ?? ""
-      bgImage.src = baseUrl + backgroundImageURL
+      // Data URLs are self-contained, only prepend base URL for relative paths
+      if (backgroundImageURL.startsWith("data:")) {
+        bgImage.src = backgroundImageURL
+      } else {
+        const baseUrl = getStreamlitBaseUrl() ?? ""
+        bgImage.src = baseUrl + backgroundImageURL
+      }
     }
   }, [
     canvas,
